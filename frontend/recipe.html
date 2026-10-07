@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Recipe</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main id="main"><p class="muted">Loading recipe…</p></main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("discover.html");
+const RID=new URLSearchParams(location.search).get("id");
+(async()=>{await requireUser();
+const r=await api(`/api/recipes/${RID}`);
+const why=(await api("/api/home")).recommended.find(x=>x.recipe_id==RID);
+document.getElementById("main").innerHTML=`
+<div class="card"><div class="detail-hero">${imgHtml(r)}<div style="flex:1;min-width:240px">
+<h1>${esc(r.name)}</h1>${metaLine(r)}
+<div>${(r.tags||[]).map(t=>`<span class="tagchip">${esc(t)}</span>`).join("")}</div>
+${r.diet_estimate?`<div class="small muted" style="margin-top:.4rem">Estimated: ${r.diet_estimate.vegetarian?"✓ vegetarian":""} ${r.diet_estimate.vegan?"✓ vegan":""} ${r.diet_estimate.gluten_free?"✓ gluten-free":""}${r.diet_estimate.allergens_detected.length?` · contains: ${r.diet_estimate.allergens_detected.map(esc).join(", ")}`:""} <span title="${esc(r.diet_estimate.disclaimer)}">(estimated)</span></div>`:""}
+${why?`<div class="banner-ok" style="margin-top:.6rem">💡 <strong>Why recommended?</strong><ul>${why.why.map(e=>`<li>${esc(e)}</li>`).join("")}</ul></div>`:""}
+<div class="row" style="margin-top:.6rem">
+<button class="icon" onclick="react('SAVE',this)">♡ Save</button>
+<button class="icon" onclick="react('LIKE',this)">👍 Like</button>
+<button class="icon" onclick="react('DISLIKE',this)">👎 Not for me</button>
+<button class="icon" onclick="react('COOKED',this)">🍳 I cooked this</button>
+<button class="ghost" onclick="addShop(${r.recipe_id})">🛒 Add ingredients to shopping list</button>
+</div>
+<div class="row" style="margin-top:.4rem"><select id="collsel" style="max-width:220px"></select>
+<button class="ghost" onclick="toColl()">📚 Add to collection</button></div></div></div></div>
+<div class="card"><h2>Ingredients</h2><ul class="ings">${(r.ingredients||[]).map(i=>`<li>${esc(i)}</li>`).join("")||"<li class='muted'>No ingredient list in dataset.</li>"}</ul></div>
+<div class="card"><h2>Instructions</h2><ol class="steps">${(r.instructions||[]).map(s=>`<li>${esc(s)}</li>`).join("")||"<li class='muted'>No instructions in dataset.</li>"}</ol>
+${(r.instructions||[]).length?`<p><button onclick="cookMode()">🍳 Start cooking</button></p><div id="cookmode"></div>`:""}
+${r.description_full?`<p class="muted">${esc(r.description_full.slice(0,600))}</p>`:""}</div>
+<div class="card"><h2>Your feedback</h2>
+<label class="f">How was it? (1–5)</label>
+<div class="row" id="stars">${[1,2,3,4,5].map(i=>`<button class="icon" onclick="rate(${i})">★</button>`).join("")}</div>
+<label class="f">Taste notes (optional)</label><textarea id="fb" rows="3" placeholder="e.g. loved the mild flavor, quick to make"></textarea>
+<p><button onclick="feedback()">Submit feedback</button></p><p id="fmsg" class="small muted"></p></div>`;
+window._rid=RID;window._steps=r.instructions||[];
+try{api(`/api/events`,{method:"POST",body:JSON.stringify({recipe_id:parseInt(RID),event_type:"OPENED",context:"recipe-page"})});}catch(e){}})();
+async function react(kind,btn){await api(`/api/interactions/${window._rid}`,{method:"POST",body:JSON.stringify({interaction_type:kind})});if(btn)btn.classList.add("on");}
+async function rate(n){await api(`/api/interactions/${window._rid}`,{method:"POST",body:JSON.stringify({interaction_type:"RATED",rating:n})});document.getElementById("fmsg").textContent=`Rated ${n}★ — thanks, this improves your recommendations.`;}
+async function feedback(){const t=document.getElementById("fb").value.trim();if(!t){document.getElementById("fmsg").textContent="Write a few words first.";return;}
+await api(`/api/interactions/${window._rid}`,{method:"POST",body:JSON.stringify({interaction_type:"REVIEW",review_text:t})});
+document.getElementById("fmsg").textContent="Thanks! Your taste profile will learn from this.";document.getElementById("fb").value="";}
+async function addShop(rid){const r=await api(`/api/shopping-list/from-recipe/${rid}`,{method:"POST"});toast(`Added ${r.added} ingredients to your shopping list.`);}
+let COOK_STEPS=[],COOK_I=0;
+function cookMode(){COOK_STEPS=window._steps||[];COOK_I=0;renderCook();}
+function renderCook(){const el=document.getElementById("cookmode");if(!el)return;
+el.innerHTML=`<div class="card"><h3>Step ${COOK_I+1} of ${COOK_STEPS.length}</h3><p>${esc(COOK_STEPS[COOK_I])}</p>
+<div class="row"><button class="ghost" onclick="cookNav(-1)" ${COOK_I===0?"disabled":""}>← Previous</button>
+${COOK_I<COOK_STEPS.length-1?`<button onclick="cookNav(1)">Next →</button>`:`<button onclick="cookDone()">✔ Finished cooking</button>`}</div></div>`;
+el.scrollIntoView();}
+function cookNav(d){COOK_I=Math.max(0,Math.min(COOK_STEPS.length-1,COOK_I+d));renderCook();}
+async function cookDone(){await react("COOKED");document.getElementById("cookmode").innerHTML="<p>🎉 Nice work! This has been added to your cooking history.</p>";}
+async function loadColls(){try{const c=await api("/api/collections");
+document.getElementById("collsel").innerHTML=c.collections.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")||"<option value=''>No collections yet</option>";}catch(e){}}
+async function toColl(){const v=document.getElementById("collsel").value;if(!v){toast("Create a collection on your Profile page first.",false);return;}
+await api(`/api/collections/${v}/items`,{method:"POST",body:JSON.stringify({recipe_id:parseInt(window._rid),source:"foodcom"})});toast("Added to collection.");}
+loadColls();
+</script></body></html>

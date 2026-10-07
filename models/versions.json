@@ -1,0 +1,40 @@
+{
+  "trained_at": "2026-10-07T05:32:57.342573+00:00",
+  "n_recipes": 522517,
+  "n_interactions": 854948,
+  "weights": {
+    "w_baseline": 0.5,
+    "w_temporal": 0.25,
+    "w_aspect": 0.25,
+    "hybrid_alpha": 0.7
+  },
+  "temporal": {
+    "mode": "exp_decay",
+    "lambda": 0.02,
+    "hist": 0.3,
+    "recent": 0.7
+  },
+  "preprocess": {
+    "n_recipes": 522517,
+    "n_interactions": 854948,
+    "n_users": 26375,
+    "mode": "full",
+    "recipe_file": "D:\\Projects\\Recipe recommendation\\data\\raw\\RAW_recipes.csv",
+    "interaction_file": "D:\\Projects\\Recipe recommendation\\data\\raw\\RAW_reviews.csv",
+    "recipe_map": {
+      "RecipeId": "recipe_id",
+      "Name": "name",
+      "RecipeIngredientParts": "ingredients",
+      "Keywords": "tags",
+      "TotalTime": "minutes",
+      "Description": "description"
+    },
+    "interaction_map": {
+      "AuthorId": "user_id",
+      "RecipeId": "recipe_id",
+      "Rating": "rating",
+      "Review": "review",
+      "DateSubmitted": "date"
+    }
+  }
+}

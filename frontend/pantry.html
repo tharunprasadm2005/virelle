@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — My Pantry</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main><h1>My Pantry</h1>
+<p class="muted">Tell Virelle what you have — <a href="cook.html">What can I cook?</a> finds recipes from it.</p>
+<div class="row"><input id="nl" placeholder="Add ingredient... (e.g. 2 onions, or several comma-separated)" style="flex:1"><button onclick="add(this)">Add</button></div>
+<div id="list"></div></main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("pantry.html");
+async function load(){const l=await api("/api/pantry");const cats={};
+l.items.forEach(i=>{(cats[i.category||"other"]=cats[i.category||"other"]||[]).push(i);});
+document.getElementById("list").innerHTML=Object.entries(cats).map(([c,items])=>
+`<div class="shop-cat">${esc(c)} (${items.filter(i=>i.available).length}/${items.length} available)</div>${items.map(i=>`<div class="shop-item ${i.available?"":"done"}">
+<input type="checkbox" ${i.available?"checked":""} onchange="toggle(${i.id})" title="available">
+<span>${esc(i.label)}${i.quantity?` — ${esc(i.quantity)}${i.unit?" "+esc(i.unit):""}`:""} <span class="muted small">(${esc(i.normalized_name)})</span></span>
+<a href="#" style="margin-left:auto" onclick="del(${i.id});return false">✕</a></div>`).join("")}`).join("")||"<p class='muted'>Pantry is empty — add a few ingredients and we'll find recipes you can make.</p>";}
+async function add(btn){const v=document.getElementById("nl").value.trim();if(!v)return;
+await withBtn(btn,async()=>{const r=await api("/api/pantry/items",{method:"POST",body:JSON.stringify({label:v})});
+const corr=r.items.filter(i=>i.corrected_from);
+toast(corr.length?`Added ${r.items.length} item(s) — understood “${corr[0].corrected_from}” as ${corr[0].normalized_name}.`:`Added ${r.items.length} item(s).`);
+document.getElementById("nl").value="";await load();});}
+async function toggle(id){await api(`/api/pantry/items/${id}/availability`,{method:"PATCH"});load();}
+async function del(id){await api(`/api/pantry/items/${id}`,{method:"DELETE"});load();}
+(async()=>{await requireUser();setLoading("list","Loading your pantry…");load();})();
+</script></body></html>

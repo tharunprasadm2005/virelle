@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — My Taste</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main><h1>My Taste</h1><div id="body"><p class="muted">Loading…</p></div></main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("taste.html");
+(async()=>{await requireUser();const t=await api("/api/taste");const el=document.getElementById("body");
+if(!t.has_history){el.innerHTML=`<div class="card"><p>${esc(t.message)}</p><p><a href="discover.html">Discover recipes</a> to get started.</p></div>`;return;}
+const likes=Object.entries(t.aspects).filter(([_,v])=>v>0.25),dis=Object.entries(t.aspects).filter(([_,v])=>v<-0.25);
+const maxC=Math.max(1,...t.cuisines.map(c=>c.count));
+el.innerHTML=`
+<div class="card"><h2>What you usually enjoy</h2>
+${t.cuisines.slice(0,8).map(c=>`<div class="bar"><span style="width:130px">${esc(c.label)}</span><div class="fill" style="width:${(c.count/maxC*220).toFixed(0)}px"></div><span class="muted small">${c.count}</span></div>`).join("")||"<p class='muted'>—</p>"}</div>
+<div class="card"><h2>From your reviews</h2>
+${Object.keys(t.aspects).length?`<p>You often like: ${likes.map(([a])=>"✓ <strong>"+esc(a)+"</strong>").join(", ")||"—"}</p>
+<p>You prefer to avoid: ${dis.map(([a])=>"✗ <strong>"+esc(a)+"</strong>").join(", ")||"—"}</p>`:"<p class='muted'>No review notes yet — write feedback on recipes you try.</p>"}</div>
+<div class="card"><h2>Your taste is ${t.shift>0.15?"evolving 🌱":"steady ✨"}</h2>
+${t.evolution_ready?`<div id="evo"><p class="muted">Loading earlier vs recent…</p></div>
+<p>Your preference shift: <strong>${(t.shift*100).toFixed(1)}%</strong></p>`:`<p class="muted">${esc(t.evolution_note)}</p>`}
+</div>`;
+if(t.evolution_ready){try{
+const ev=await api("/api/taste/evolution");
+if(ev&&ev.has_history){document.getElementById("evo").innerHTML=
+`<p><strong>Earlier you enjoyed:</strong> ${ev.earlier_recipes.map(x=>esc(x.name)).join(", ")||"—"}</p><p style="text-align:center">↓</p>
+<p><strong>More recently:</strong> ${ev.recent_recipes.map(x=>esc(x.name)).join(", ")||"—"}</p>`;}}catch(e){}}
+})();
+</script></body></html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Profile</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main style="max-width:640px"><h1>Profile</h1>
+<div class="card"><h2 id="pname">—</h2><p class="muted" id="pemail"></p><p class="small muted" id="since"></p>
+<label class="f">Display name</label><div class="row"><input id="nn" style="flex:1"><button onclick="saveName()">Save</button></div></div>
+<div class="card"><h2>Food preferences</h2><div id="prefs"></div><p><a href="onboarding.html">Update preferences →</a></p></div>
+<div class="card"><h2>Change password</h2>
+<label class="f">Current password</label><input id="cp" type="password">
+<label class="f">New password</label><input id="np" type="password">
+<p><button onclick="pw()">Change password</button></p><p id="pmsg" class="small muted"></p></div>
+<div class="card"><h2>Account</h2><button class="ghost" onclick="logout()">Log out</button></div>
+<div class="card"><h2>My imports</h2><div id="imports"></div></div>
+<div class="card"><h2>My collections</h2>
+<div class="row"><input id="cn" placeholder="New collection name..." style="flex:1"><button onclick="mkColl()">Create</button></div>
+<div id="colls"></div></div>
+</main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("profile.html");
+async function load(){const p=await api("/api/profile");document.getElementById("pname").textContent=p.name;document.getElementById("pemail").textContent=p.email;document.getElementById("since").textContent="Cooking with Virelle since "+p.member_since.slice(0,10);
+document.getElementById("nn").value=p.name;const pr=p.preferences;document.getElementById("prefs").innerHTML=`<p><strong>Diet:</strong> ${esc(pr.diet||"—")}</p>
+<p><strong>Cuisines:</strong> ${(pr.cuisines||[]).map(esc).join(", ")||"—"}</p>
+<p><strong>Priorities:</strong> ${(pr.priorities||[]).map(esc).join(", ")||"—"}</p>
+<p><strong>Avoids:</strong> ${(pr.avoid_ingredients||[]).map(esc).join(", ")||"—"}</p>
+${pr.max_minutes?`<p><strong>Max time:</strong> ${pr.max_minutes} min</p>`:""}
+<p><strong>Nutrition goals:</strong> ${(pr.nutrition_goals||[]).map(esc).join(", ")||"—"}</p>
+<div class="pill-group" id="goals">${["high protein","lighter meals","calorie aware","balanced"].map(g=>`<button class="pill${(pr.nutrition_goals||[]).includes(g)?" sel":""}" data-v="${g}" onclick="this.classList.toggle('sel')">${g}</button>`).join("")}</div>
+<p><button onclick="saveGoals()">Save nutrition goals</button></p>`;}
+async function saveGoals(){const v=[...document.querySelectorAll("#goals .pill.sel")].map(x=>x.dataset.v);
+const cur=await api("/api/preferences");await api("/api/preferences",{method:"PUT",body:JSON.stringify({...cur,diet:cur.diet||"",nutrition_goals:v})});load();}
+async function saveName(){const v=document.getElementById("nn").value.trim();if(v)await api("/api/profile",{method:"PUT",body:JSON.stringify({name:v})});load();}
+async function loadImports(){try{const r=await api("/api/imports");
+document.getElementById("imports").innerHTML=r.imports.map(i=>`<p>🍴 <strong>${esc(i.title)}</strong> <span class="muted small">from ${esc(i.source_name||"link")} · Imported</span> <a href="#" onclick="delImp(${i.id});return false">✕</a></p>`).join("")||"<p class='muted'>No imports yet — paste a recipe URL on Discover.</p>";}catch(e){}}
+async function delImp(id){await api(`/api/imports/${id}`,{method:"DELETE"});loadImports();}
+async function loadColls(){const c=await api("/api/collections");
+document.getElementById("colls").innerHTML=await Promise.all(c.collections.map(async x=>{
+const d=await api(`/api/collections/${x.id}`);
+return `<p><strong>${esc(x.name)}</strong> (${d.recipes.length}) <a href="#" onclick="delColl(${x.id});return false">✕</a><br><span class="small muted">${d.recipes.slice(0,5).map(r=>esc(r.name)).join(" · ")||"empty"}</span></p>`;})).then(a=>a.join(""))||"<p class='muted'>No collections yet.</p>";}
+async function mkColl(){const v=document.getElementById("cn").value.trim();if(!v)return;
+await api("/api/collections",{method:"POST",body:JSON.stringify({name:v})});document.getElementById("cn").value="";loadColls();}
+async function delColl(id){await api(`/api/collections/${id}`,{method:"DELETE"});loadColls();}
+async function pw(){try{await api("/api/profile/password",{method:"POST",body:JSON.stringify({current_password:document.getElementById("cp").value,new_password:document.getElementById("np").value})});document.getElementById("pmsg").textContent="Password changed.";}catch(e){document.getElementById("pmsg").textContent=e.message;}}
+(async()=>{await requireUser();load();loadImports();loadColls();})();
+</script></body></html>

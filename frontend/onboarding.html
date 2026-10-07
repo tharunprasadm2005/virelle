@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Welcome to Virelle</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body><main style="max-width:640px"><div class="card" style="margin-top:2rem">
+<h1>Welcome to Virelle 👋</h1><p>Let's understand your taste.</p>
+<label class="f">What type of food do you prefer?</label>
+<div class="pill-group" id="diet">
+<button class="pill" data-v="vegetarian">Vegetarian</button><button class="pill" data-v="non-vegetarian">Non-Vegetarian</button>
+<button class="pill" data-v="vegan">Vegan</button><button class="pill" data-v="eggetarian">Eggetarian</button></div>
+<label class="f">Favorite cuisines</label>
+<div class="pill-group" id="cui">
+<button class="pill" data-v="indian">Indian</button><button class="pill" data-v="south indian">South Indian</button>
+<button class="pill" data-v="chinese">Chinese</button><button class="pill" data-v="italian">Italian</button>
+<button class="pill" data-v="mexican">Mexican</button><button class="pill" data-v="american">American</button>
+<button class="pill" data-v="other">Other</button></div>
+<label class="f">What matters to you?</label>
+<div class="pill-group" id="pri">
+<button class="pill" data-v="quick">Quick</button><button class="pill" data-v="easy">Easy</button>
+<button class="pill" data-v="healthy">Healthy</button><button class="pill" data-v="high protein">High Protein</button>
+<button class="pill" data-v="budget friendly">Budget Friendly</button></div>
+<label class="f">Ingredients to avoid (comma separated)</label>
+<input id="avoid" placeholder="e.g. peanuts, mushrooms">
+<label class="f">Max cooking time (minutes, optional)</label>
+<input id="mins" type="number" min="5" max="1440" placeholder="e.g. 30">
+<p><button onclick="save()" style="width:100%">Continue →</button></p>
+<p class="small"><a href="home.html">Skip for now</a></p>
+<p id="err" class="small" style="color:#a33"></p>
+</div></main>
+<script src="js/app.js"></script>
+<script>
+function pills(id,multi){const g=document.getElementById(id);g.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{if(!multi){g.querySelectorAll(".pill").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");}else b.classList.toggle("sel");});
+return ()=>[...g.querySelectorAll(".pill.sel")].map(x=>x.dataset.v);}
+const getDiet=pills("diet",false),getCui=pills("cui",true),getPri=pills("pri",true);
+async function save(){try{await api("/api/preferences",{method:"PUT",body:JSON.stringify({diet:getDiet()[0]||"",cuisines:getCui(),priorities:getPri(),avoid_ingredients:document.getElementById("avoid").value.split(",").map(s=>s.trim()).filter(Boolean),max_minutes:parseInt(document.getElementById("mins").value)||null})});location.href="home.html";}catch(e){document.getElementById("err").textContent=e.message;}}
+</script></body></html>

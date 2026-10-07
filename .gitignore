@@ -1,0 +1,26 @@
+# Large raw Food.com data — never commit
+data/raw/
+data/processed/
+*.pkl
+*.joblib
+models/*.joblib
+models/*.pkl
+models/*.npy
+models/*.index
+reports/figures/*.png
+!reports/figures/.gitkeep
+experiments/*.csv
+!experiments/.gitkeep
+__pycache__/
+*.pyc
+tests/test_*.db
+tests/test_*.sqlite
+frontend-react/node_modules/
+frontend-react/dist/
+.venv/
+venv/
+.env
+recommendations.db
+*.db
+baseline_original/data/
+.pytest_cache/

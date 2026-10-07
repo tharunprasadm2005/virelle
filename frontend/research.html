@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Research</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main><h1>Research &amp; Evaluation</h1>
+<p class="muted">Academic view of the adaptive recommendation engine (faculty/developer area).</p>
+<div class="card"><h2>Dataset</h2><div id="ds"></div></div>
+<div class="card"><h2>Ablation study (real Food.com data)</h2><div id="ab"></div>
+<p class="small muted">Protocol: per-user temporal split — train on older interactions, test on recent liked ones. Run <code>scripts/evaluate.py</code> to regenerate.</p></div>
+<div class="card"><h2>Demo users with measurable preference shift</h2><div id="du"></div></div>
+</main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("research.html");
+(async()=>{await requireUser();const s=await api("/api/research/summary");
+document.getElementById("ds").innerHTML=s.dataset.present
+?`<p><strong>${esc(s.dataset.recipe_file)}</strong> (${s.dataset.recipe_mb} MB) + <strong>${esc(s.dataset.interaction_file)}</strong> (${s.dataset.interaction_mb} MB)</p>`
+:`<p>${esc(s.dataset.message||"missing")}</p>`;
+const rows=s.ablation.filter(r=>r.K===10);
+document.getElementById("ab").innerHTML=rows.length?`<table class="metrics"><tr><th>Model</th><th>P@10</th><th>R@10</th><th>NDCG@10</th><th>HR@10</th></tr>
+${rows.map(r=>`<tr><td>${esc(r.model)}</td><td>${r["P@10"].toFixed(4)}</td><td>${r["R@10"].toFixed(4)}</td><td>${r["NDCG@10"].toFixed(4)}</td><td>${r["HR@10"].toFixed(4)}</td></tr>`).join("")}</table>
+<p class="small muted">Review-aspect signals doubled hit-rate vs baseline; temporal re-weighting alone was neutral — reported as measured.</p>`
+:"<p class='muted'>No ablation results yet.</p>"+s.notes.map(n=>`<p class="small muted">${esc(n)}</p>`).join("");
+const d=await api("/api/demo_users");
+document.getElementById("du").innerHTML=`<table class="metrics"><tr><th>User</th><th>Interactions</th><th>Reviews</th><th>Shift</th></tr>
+${d.users.map(u=>`<tr><td>${u.user_id}</td><td>${u.n_interactions}</td><td>${u.n_reviews}</td><td>${u.shift}</td></tr>`).join("")}</table>`;
+})();
+</script></body></html>

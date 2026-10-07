@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Recipes that learn your taste</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="index.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="auth.html">Log in</a><a href="auth.html">Sign up</a></div></header>
+<main style="max-width:720px">
+<div class="card" style="text-align:center;padding:2rem 1.5rem">
+<h1 style="color:var(--accent)">Virelle</h1>
+<p><strong>Recipes that learn your taste.</strong></p>
+<p class="muted">Half a million real recipes. Recommendations that adapt as your taste changes — then a weekly plan and shopping list to match.</p>
+<p><a class="btn" href="home.html">Open the app →</a> <a class="btn ghost" href="auth.html">Try the demo account</a></p>
+</div>
+<div class="grid" id="sections"></div>
+</main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("index.html");
+if(token())location.href="home.html";
+document.getElementById("sections").innerHTML=[
+["discover.html","🔍 Discover","Search 500K+ recipes by craving, diet, or time."],
+["pantry.html","🧺 Pantry","Tell us what's in your kitchen."],
+["cook.html","🍳 What can I cook?","Ranked by your ingredients + your taste."],
+["meals.html","📅 Meal Planner","Generate your week in one tap."],
+["shopping.html","🛒 Shopping List","Missing ingredients, merged and grouped."],
+["taste.html","🌱 My Taste","Watch your preferences evolve."],
+["profile.html","👤 Profile","Tastes, collections, imports, password."],
+["research.html","🔬 Research","The science behind the recommendations."]
+].map(([h,t,d])=>`<a class="card" href="${h}" style="text-decoration:none;color:inherit"><h2>${t}</h2><p class="muted small">${d}</p></a>`).join("");
+</script></body></html>

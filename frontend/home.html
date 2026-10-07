@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Home</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html" id="who"></a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main>
+<div class="hero"><h1 id="hello">Hello 👋</h1>
+<div class="searchbar"><input id="q" placeholder="Search recipes... (try 'quick chicken dinner')"><button onclick="goSearch()">Search</button></div>
+<div class="searchbar" style="margin-top:.4rem"><input id="intent" placeholder="Right now I'm craving... (temporary, won't change your taste profile)"><button class="ghost" onclick="loadHome()">Apply</button></div></div>
+<div id="stage"></div>
+<h2>Recommended for you</h2><div id="recs" class="grid"></div>
+<div id="shelves"></div>
+<h2>Recently saved</h2><div id="saved" class="grid"></div>
+</main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("home.html");function goSearch(){location.href="discover.html?q="+encodeURIComponent(document.getElementById("q").value);}
+document.getElementById("q").addEventListener("keydown",e=>{if(e.key==="Enter")goSearch();});
+(async()=>{const me=await requireUser();document.getElementById("who").textContent=me.name;
+document.getElementById("hello").textContent=`${greeting()}, ${me.name} 👋`;
+loadHome();})();
+async function loadHome(){const it=document.getElementById("intent").value.trim();
+setLoading("recs","Finding recipes for you — a few seconds on first load…");
+try{const h=await api(`/api/home${it?`?intent=${encodeURIComponent(it)}`:""}`);
+const st=h.stage;
+document.getElementById("stage").innerHTML=st.stage==="personalized"
+?`<div class="banner-ok">✨ ${esc(st.message)}</div>`
+:`<div class="banner-warn">🌱 ${esc(st.message)}</div>`;
+document.getElementById("recs").innerHTML=h.recommended.map(c=>recipeCard(c,{cook:true})).join("")||"<p class='muted'>No recommendations yet.</p>";
+document.getElementById("shelves").innerHTML=(h.shelves||[]).map(s=>`<h2>${esc(s.label)}</h2><div class="grid">${s.recipes.map(c=>recipeCard(c)).join("")}</div>`).join("");
+document.getElementById("saved").innerHTML=(h.saved||[]).map(c=>recipeCard(c)).join("")||"<p class='muted'>Nothing saved yet — tap ♡ on any recipe.</p>";
+try{const ids=h.recommended.map(c=>c.recipe_id);if(ids.length)api("/api/events/shown-batch",{method:"POST",body:JSON.stringify({recipe_ids:ids,context:"home"})});}catch(e){}
+}catch(e){document.getElementById("recs").innerHTML=`<p>Couldn't load recommendations: ${esc(e.message)} <a href="#" onclick="loadHome();return false">Retry</a></p>`;}}
+</script></body></html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Shopping List</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main><h1>Shopping List</h1>
+<div class="row"><input id="nl" placeholder="Add item... (e.g. Paneer — 500 g, or several comma-separated)" style="flex:1"><button onclick="add(this)">Add</button>
+<button class="ghost" onclick="merge()">Merge duplicates</button>
+<button class="ghost" onclick="clearDone()">Clear completed</button></div>
+<div id="list"></div></main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("shopping.html");
+async function load(){const l=await api("/api/shopping-list");const cats={};
+l.items.forEach(i=>{(cats[i.category||"other"]=cats[i.category||"other"]||[]).push(i);});
+document.getElementById("list").innerHTML=Object.entries(cats).map(([c,items])=>
+`<div class="shop-cat">${esc(c)}</div>${items.map(i=>`<div class="shop-item ${i.checked?"done":""}">
+<input type="checkbox" ${i.checked?"checked":""} onchange="toggle(${i.id})"><span>${esc(i.label)}${i.quantity?` — ${esc(i.quantity)}`:""}</span>
+<a href="#" style="margin-left:auto" onclick="del(${i.id});return false">✕</a></div>`).join("")}`).join("")||"<p class='muted'>Empty — add items or tap 🛒 on a recipe.</p>";}
+async function add(btn){const v=document.getElementById("nl").value.trim();if(!v)return;
+await withBtn(btn,async()=>{
+const[label,quantity]=v.split("—").length>1?v.split("—"):[v.split(" - ").length>1?v.split(" - "):[v,""]];
+await api("/api/shopping-list/items",{method:"POST",body:JSON.stringify({label:label.trim(),quantity:(quantity||"").trim()})});
+document.getElementById("nl").value="";await load();});}
+async function toggle(id){await api(`/api/shopping-list/items/${id}`,{method:"PATCH"});load();}
+async function del(id){await api(`/api/shopping-list/items/${id}`,{method:"DELETE"});load();}
+async function clearDone(){await api("/api/shopping-list/clear-completed",{method:"POST"});load();}
+async function merge(){const r=await api("/api/shopping-list/merge-duplicates",{method:"POST"});toast(`Merged ${r.merged} duplicate entries.`);load();}
+(async()=>{await requireUser();setLoading("list","Loading your list…");load();})();
+</script></body></html>

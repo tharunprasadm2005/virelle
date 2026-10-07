@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virelle — Meal Planner</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="topbar"><a class="logo" href="home.html"><img src="assets/virelle-mark.svg" alt="Virelle" width="30" height="30" style="vertical-align:-6px;margin-right:6px">Virelle<small>Recipes that learn your taste</small></a>
+<nav class="mainnav"></nav><div class="userbox"><a href="profile.html">Profile</a><a href="#" onclick="logout();return false">Logout</a></div></header>
+<main><h1>Meal Planner</h1>
+<div class="row"><input id="wk" type="date" style="max-width:200px"><button onclick="load()">Open week</button><button class="ghost" onclick="gen()">✨ Generate my week</button></div>
+<p class="muted small">Week starts Monday. Filled from your taste — saved recipes first, no repeats.</p>
+<div id="grid" class="week"></div>
+<div class="card" id="pick" style="display:none"><h2>Pick a recipe</h2><input id="pq" placeholder="Search..."><div id="pr" class="grid"></div></div>
+</main>
+<nav class="bottomnav"></nav>
+<script src="js/app.js"></script>
+<script>
+nav("meals.html");
+let CELL=null;
+function monday(){const d=new Date();const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10);}
+async function load(){const w=document.getElementById("wk").value||monday();document.getElementById("wk").value=w;
+const p=await api(`/api/meal-plans?week_start=${w}`);render(p.grid,w);}
+function render(g,w){document.getElementById("grid").innerHTML=Object.entries(g).map(([d,slots])=>
+`<div class="daycol"><strong style="text-transform:capitalize">${d}</strong>${["breakfast","lunch","dinner"].map(s=>{const r=slots[s];
+return `<div class="mealslot"><div class="small muted">${s}</div>${r?`<a href="recipe.html?id=${r.recipe_id}">${esc(r.name)}</a> <a href="#" onclick="clearSlot('${w}','${d}','${s}');return false" title="Remove">✕</a>`:`<a href="#" onclick="pick('${w}','${d}','${s}');return false">+ add</a>`}</div>`;}).join("")}</div>`).join("");}
+async function clearSlot(w,d,s){const p=await api(`/api/meal-plans/slot?week_start=${w}`,{method:"PUT",body:JSON.stringify({day:d,slot:s,recipe_id:null})});render(p.grid,w);}
+async function gen(){const w=document.getElementById("wk").value||monday();const p=await api(`/api/meal-plans/generate?week_start=${w}`,{method:"POST"});render(p.grid,w);}
+async function pick(w,d,s){CELL={w,d,s};document.getElementById("pick").style.display="";const q=document.getElementById("pq").value||"dinner";const r=await api(`/api/recipes/search?q=${encodeURIComponent(q)}&limit=12`);
+document.getElementById("pr").innerHTML=r.results.map(c=>`<div class="rcard"><div class="body"><div class="title">${esc(c.name)}</div>${metaLine(c)}<div class="actions"><button onclick="choose(${c.recipe_id})">Add</button></div></div></div>`).join("");}
+async function choose(rid){const p=await api(`/api/meal-plans/slot?week_start=${CELL.w}`,{method:"PUT",body:JSON.stringify({day:CELL.d,slot:CELL.s,recipe_id:rid})});document.getElementById("pick").style.display="none";render(p.grid,CELL.w);}
+document.getElementById("pq").addEventListener("keydown",async e=>{if(e.key==="Enter"&&CELL){const r=await api(`/api/recipes/search?q=${encodeURIComponent(e.target.value)}&limit=12`);document.getElementById("pr").innerHTML=r.results.map(c=>`<div class="rcard"><div class="body"><div class="title">${esc(c.name)}</div>${metaLine(c)}<div class="actions"><button onclick="choose(${c.recipe_id})">Add</button></div></div></div>`).join("");}});
+(async()=>{await requireUser();load();})();
+</script></body></html>
